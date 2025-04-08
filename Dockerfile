@@ -1,24 +1,30 @@
-#Grab the latest alpine image
+# Start from the Alpine image
 FROM alpine:latest
 
-# Install python and pip
-RUN apk add --no-cache --update python3 py3-pip bash
-ADD ./webapp/requirements.txt /tmp/requirements.txt
+# Install system dependencies
+RUN apk add --no-cache \
+    gunicorn
+    Flask
+    Jinja2
+    Werkzeug
 
-# Install dependencies
-RUN pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements.txt
+# Create a virtual environment
+RUN python3 -m venv /opt/venv
 
-# Add our code
-ADD ./webapp /opt/webapp/
+# Activate virtualenv and install Python dependencies
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Add requirements and install
+COPY ./webapp/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy application code
+COPY ./webapp /opt/webapp
 WORKDIR /opt/webapp
 
-# Expose is NOT supported by Heroku
-# EXPOSE 5000 		
-
-# Run the image as a non-root user
+# Create a non-root user
 RUN adduser -D myuser
 USER myuser
 
-# Run the app.  CMD is required to run on Heroku
-# $PORT is set by Heroku			
-CMD gunicorn --bind 0.0.0.0:$PORT wsgi 
+# Heroku runs this with PORT env variable set
+CMD gunicorn --bind 0.0.0.0:$PORT wsgi

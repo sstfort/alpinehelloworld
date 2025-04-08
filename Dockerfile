@@ -1,24 +1,26 @@
-# Start from the Alpine image
+# Start from Alpine
 FROM alpine:latest
 
-# Install system dependencies
+# Install Python and dependencies
 RUN apk add --no-cache \
-    gunicorn
-    Flask
-    Jinja2
-    Werkzeug
+    python3 \
+    py3-pip \
+    py3-virtualenv \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    build-base \
+    bash
 
-# Create a virtual environment
+# Create and activate virtual environment
 RUN python3 -m venv /opt/venv
-
-# Activate virtualenv and install Python dependencies
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Add requirements and install
+# Copy and install requirements inside the venv
 COPY ./webapp/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Copy application code
+# Add application code
 COPY ./webapp /opt/webapp
 WORKDIR /opt/webapp
 
@@ -26,5 +28,5 @@ WORKDIR /opt/webapp
 RUN adduser -D myuser
 USER myuser
 
-# Heroku runs this with PORT env variable set
+# Heroku uses $PORT, required for gunicorn
 CMD gunicorn --bind 0.0.0.0:$PORT wsgi

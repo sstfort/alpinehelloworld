@@ -1,37 +1,24 @@
-# Start from Alpine
+#Grab the latest alpine image
 FROM alpine:latest
 
-# Install Python, pip, virtualenv, and build dependencies
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    py3-virtualenv \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    build-base \
-    bash
+# Install python and pip
+RUN apk add --no-cache --update python3 py3-pip bash
+ADD ./webapp/requirements.txt /tmp/requirements.txt
 
-# Create virtualenv
-RUN python3 -m venv /opt/venv
+# Install dependencies
+RUN pip3 install --no-cache-dir -q --break-system-packages -r /tmp/requirements.txt
 
-# Activate venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Use shell form to ensure venv pip is used
-SHELL ["/bin/bash", "-c"]
-
-# Copy and install requirements using venv's pip
-COPY ./webapp/requirements.txt /tmp/requirements.txt
-RUN source /opt/venv/bin/activate && pip install --no-cache-dir -r /tmp/requirements.txt
-
-# Copy app code
-COPY ./webapp /opt/webapp
+# Add our code
+ADD ./webapp /opt/webapp/
 WORKDIR /opt/webapp
 
-# Switch to non-root
+# Expose is NOT supported by Heroku
+# EXPOSE 5000 		
+
+# Run the image as a non-root user
 RUN adduser -D myuser
 USER myuser
 
-# Entrypoint for Heroku
-CMD gunicorn --bind 0.0.0.0:$PORT wsgi
+# Run the app.  CMD is required to run on Heroku
+# $PORT is set by Heroku			
+CMD gunicorn --bind 0.0.0.0:$PORT wsgi 
